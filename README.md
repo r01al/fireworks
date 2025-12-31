@@ -91,6 +91,10 @@ By default, Fireworks uses a canvas underlay when supported and falls back to DO
 
 When DOM particles are used, a one‑time console warning is logged because DOM particles can be less performant on heavy pages.
 
+## Z‑index note ⚠️
+
+Default `zIndex` is `-1`, which keeps the effect **behind** your content. If you want the fireworks on top of everything, set a higher value (e.g. `zIndex: 10`). The effect won’t block clicks because it uses `pointer-events: none`, but it can visually cover UI elements when on top.
+
 ## Config 🎛️
 
 All options are optional.
