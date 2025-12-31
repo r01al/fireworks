@@ -38,7 +38,7 @@ const fx = new Fireworks(host, {
 
 ```html
 <div id="hero"></div>
-<script src="https://unpkg.com/@r01al/fireworks/dist/fireworks.min.js"></script>
+<script src="https://unpkg.com/@r01al/fireworks@latest/dist/fireworks.min.js"></script>
 <script>
   const host = document.getElementById("hero");
   const { Fireworks, createFireworks } = window.Fireworks;
@@ -53,7 +53,7 @@ Use UMD when you want a simple `<script>` tag and a global API.
 
 ```html
 <!-- UMD build exposes window.Fireworks -->
-<script src="https://unpkg.com/@r01al/fireworks/dist/fireworks.min.js"></script>
+<script src="https://unpkg.com/@r01al/fireworks/dist/fireworks.umd.js"></script>
 <script>
   const { Fireworks } = window.Fireworks;
   const host = document.querySelector("#hero");
@@ -67,7 +67,7 @@ Use UMD when you want a simple `<script>` tag and a global API.
 If you want a non‑minified UMD bundle:
 
 ```html
-<script src="https://unpkg.com/@r01al/fireworks/dist/fireworks.umd.js"></script>
+<script src="https://unpkg.com/@r01al/fireworks@latest/dist/fireworks.umd.js"></script>
 ```
 
 ## API 🧩
