@@ -14,7 +14,7 @@ Lightweight, framework‑agnostic fireworks effect that attaches to any HTML ele
 ## Install 📦
 
 ```bash
-npm install fireworks
+npm install @r01al/fireworks
 ```
 
 ## Quick start 🚀
