@@ -1,6 +1,7 @@
 import { DEFAULT_CONFIG } from "./defaults.js";
 import { ensureStyles } from "./styles.js";
-import { randomFloat, randomInt } from "./utils/random.js";
+import { CanvasRenderer } from "./renderers/canvas.js";
+import { DomRenderer } from "./renderers/dom.js";
 
 class Fireworks {
   constructor(host, config = {}) {
@@ -8,18 +9,12 @@ class Fireworks {
     this.config = Fireworks.mergeConfig(config);
     this.burstTimer = null;
     this.sizeTimer = null;
-    this.rafId = null;
-    this.lastFrameTime = 0;
     this.width = 0;
     this.height = 0;
     this.originalPosition = null;
     this.originalZIndex = null;
     this.destroyed = false;
-    this.overlay = null;
-    this.canvas = null;
-    this.ctx = null;
-    this.particles = [];
-    this.useCanvas = false;
+    this.renderer = null;
 
     ensureStyles();
 
@@ -33,29 +28,20 @@ class Fireworks {
       this.host.style.zIndex = "0";
     }
 
-    this.useCanvas = this.config.useCanvas && Fireworks.isCanvasSupported();
-
-    if (this.useCanvas) {
-      this.canvas = document.createElement("canvas");
-      this.canvas.className = "fw-canvas";
-      this.canvas.style.zIndex = String(this.config.zIndex);
-      this.ctx = this.canvas.getContext("2d");
-      if (!this.ctx) {
-        this.useCanvas = false;
-        this.canvas = null;
+    const shouldUseCanvas = this.config.useCanvas && Fireworks.isCanvasSupported();
+    if (shouldUseCanvas) {
+      this.renderer = new CanvasRenderer(this.config);
+      if (!this.renderer.ctx) {
+        this.renderer = null;
       }
     }
 
-    if (this.useCanvas) {
-      this.attachLayer(this.canvas);
-    } else {
+    if (!this.renderer) {
       Fireworks.warnDomFallback();
-      this.overlay = document.createElement("div");
-      this.overlay.className = "fw-overlay";
-      this.overlay.style.zIndex = String(this.config.zIndex);
-      this.attachLayer(this.overlay);
+      this.renderer = new DomRenderer(this.config);
     }
 
+    this.attachLayer(this.renderer.getElement());
     this.updateSize();
     this.start();
   }
@@ -85,8 +71,8 @@ class Fireworks {
       this.burst();
     }, this.config.burstIntervalMs);
 
-    if (this.useCanvas) {
-      this.startRenderLoop();
+    if (this.renderer && this.renderer.start) {
+      this.renderer.start();
     }
   }
 
@@ -99,20 +85,17 @@ class Fireworks {
       window.clearInterval(this.sizeTimer);
       this.sizeTimer = null;
     }
+    if (this.renderer && this.renderer.stop) {
+      this.renderer.stop();
+    }
   }
 
   destroy() {
     if (this.destroyed) return;
     this.stop();
-    this.stopRenderLoop();
-    if (this.overlay) {
-      this.overlay.remove();
-      this.overlay = null;
-    }
-    if (this.canvas) {
-      this.canvas.remove();
-      this.canvas = null;
-      this.ctx = null;
+    if (this.renderer) {
+      this.renderer.destroy();
+      this.renderer = null;
     }
     if (this.originalPosition !== null) {
       this.host.style.position = this.originalPosition;
@@ -123,52 +106,10 @@ class Fireworks {
     this.destroyed = true;
   }
 
-  startRenderLoop() {
-    if (!this.useCanvas || this.rafId !== null) return;
-
-    const tick = (time) => {
-      if (this.destroyed) return;
-      if (!this.useCanvas) return;
-      if (!this.isHostAvailable()) {
-        this.destroy();
-        return;
-      }
-
-      const delta = Math.min(64, time - this.lastFrameTime);
-      this.lastFrameTime = time;
-
-      if (!document.hidden) {
-        this.updateCanvas(delta);
-      } else {
-        this.lastFrameTime = time;
-      }
-
-      if (this.particles.length === 0 && this.burstTimer === null) {
-        this.rafId = null;
-        return;
-      }
-
-      this.rafId = requestAnimationFrame(tick);
-    };
-
-    this.lastFrameTime = performance.now();
-    this.rafId = requestAnimationFrame(tick);
-  }
-
-  stopRenderLoop() {
-    if (this.rafId !== null) {
-      cancelAnimationFrame(this.rafId);
-      this.rafId = null;
-    }
-  }
-
   updateConfig(config) {
     this.config = Fireworks.mergeConfig(config);
-    if (this.overlay) {
-      this.overlay.style.zIndex = String(this.config.zIndex);
-    }
-    if (this.canvas) {
-      this.canvas.style.zIndex = String(this.config.zIndex);
+    if (this.renderer) {
+      this.renderer.updateConfig(this.config);
     }
   }
 
@@ -181,22 +122,9 @@ class Fireworks {
     this.width = rect.width;
     this.height = rect.height;
 
-    if (this.useCanvas) {
-      this.resizeCanvas();
+    if (this.renderer) {
+      this.renderer.resize(this.width, this.height);
     }
-  }
-
-  resizeCanvas() {
-    if (!this.canvas || !this.ctx) return;
-    const dpr = window.devicePixelRatio || 1;
-    const width = Math.max(1, Math.floor(this.width * dpr));
-    const height = Math.max(1, Math.floor(this.height * dpr));
-
-    this.canvas.width = width;
-    this.canvas.height = height;
-    this.canvas.style.width = `${this.width}px`;
-    this.canvas.style.height = `${this.height}px`;
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
   isHostAvailable() {
@@ -214,109 +142,9 @@ class Fireworks {
     const originX = Math.random() * this.width;
     const originY = Math.random() * this.height;
 
-    const count = randomInt(this.config.particleCount.min, this.config.particleCount.max);
-    const baseDuration = randomInt(this.config.durationMs.min, this.config.durationMs.max);
-    const baseSpeed = randomFloat(this.config.speedPxPerSecond.min, this.config.speedPxPerSecond.max);
-
-    if (this.useCanvas) {
-      this.addCanvasParticles(originX, originY, count, baseDuration, baseSpeed);
-      return;
+    if (this.renderer) {
+      this.renderer.burst(originX, originY, this.config);
     }
-
-    for (let i = 0; i < count; i += 1) {
-      const particle = document.createElement("span");
-      particle.className = "fw-particle";
-
-      const size = randomInt(this.config.particleSizePx.min, this.config.particleSizePx.max);
-      const color = this.config.colors[i % this.config.colors.length];
-      const angle = Math.random() * Math.PI * 2;
-      const speedJitter = randomFloat(0.7, 1.15);
-      const durationJitter = randomFloat(0.8, 1.2);
-      const duration = Math.max(150, Math.round(baseDuration * durationJitter));
-      const distance = (baseSpeed * speedJitter * duration) / 1000;
-      const offsetX = Math.cos(angle) * distance;
-      const offsetY = Math.sin(angle) * distance;
-
-      particle.style.left = `${originX}px`;
-      particle.style.top = `${originY}px`;
-      particle.style.width = `${size}px`;
-      particle.style.height = `${size}px`;
-      particle.style.background = color;
-      particle.style.transitionDuration = `${duration}ms, ${duration}ms`;
-      particle.style.transform = "translate(0px, 0px) scale(1)";
-      particle.style.opacity = "1";
-
-      const onEnd = (event) => {
-        if (event.propertyName !== "opacity") return;
-        particle.removeEventListener("transitionend", onEnd);
-        particle.remove();
-      };
-
-      particle.addEventListener("transitionend", onEnd);
-      this.overlay.appendChild(particle);
-
-      requestAnimationFrame(() => {
-        particle.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(0.2)`;
-        particle.style.opacity = "0";
-      });
-    }
-  }
-
-  addCanvasParticles(originX, originY, count, baseDuration, baseSpeed) {
-    for (let i = 0; i < count; i += 1) {
-      const size = randomInt(this.config.particleSizePx.min, this.config.particleSizePx.max);
-      const color = this.config.colors[i % this.config.colors.length];
-      const angle = Math.random() * Math.PI * 2;
-      const speedJitter = randomFloat(0.7, 1.15);
-      const durationJitter = randomFloat(0.8, 1.2);
-      const duration = Math.max(150, Math.round(baseDuration * durationJitter));
-      const speed = baseSpeed * speedJitter;
-
-      this.particles.push({
-        x: originX,
-        y: originY,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        size,
-        color,
-        age: 0,
-        life: duration,
-      });
-    }
-  }
-
-  updateCanvas(deltaMs) {
-    if (!this.ctx || this.width === 0 || this.height === 0) return;
-
-    this.ctx.clearRect(0, 0, this.width, this.height);
-
-    const nextParticles = [];
-    const deltaSeconds = deltaMs / 1000;
-
-    for (let i = 0; i < this.particles.length; i += 1) {
-      const particle = this.particles[i];
-      particle.age += deltaMs;
-
-      if (particle.age >= particle.life) continue;
-
-      const progress = particle.age / particle.life;
-      const scale = 1 - 0.8 * progress;
-      const radius = (particle.size / 2) * scale;
-
-      particle.x += particle.vx * deltaSeconds;
-      particle.y += particle.vy * deltaSeconds;
-
-      this.ctx.globalAlpha = 1 - progress;
-      this.ctx.fillStyle = particle.color;
-      this.ctx.beginPath();
-      this.ctx.arc(particle.x, particle.y, radius, 0, Math.PI * 2);
-      this.ctx.fill();
-
-      nextParticles.push(particle);
-    }
-
-    this.ctx.globalAlpha = 1;
-    this.particles = nextParticles;
   }
 
   static mergeConfig(config) {

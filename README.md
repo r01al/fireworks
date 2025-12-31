@@ -7,7 +7,7 @@ Lightweight, framework‑agnostic fireworks effect that attaches to any HTML ele
 - Works on any element (background underlay)
 - Framework‑agnostic (drop into any stack)
 - No external CSS files
-- Uses canvas underlay when supported (falls back to DOM particles)
+- Uses a renderer (canvas underlay by default, DOM fallback)
 - Configurable burst interval, particle count, duration, speed, size, and colors
 - ES module + UMD builds
 - Tiny API (start/stop/destroy)
@@ -85,11 +85,15 @@ fx.destroy();
 
 When the tab is not focused, the library pauses **creating new particles**. This avoids a burst backlog when you return to the tab.
 
-## Canvas underlay 🧵
+## Renderers 🧵
 
-By default, Fireworks uses a canvas underlay when supported and falls back to DOM particles if canvas isn’t available. If you want to force DOM mode, set `useCanvas: false`. If the effect appears above your content, set `zIndex` to `-1` or a lower value.
+Fireworks uses a **renderer**. By default it uses a canvas underlay when supported and falls back to DOM particles if canvas isn’t available. If you want to force DOM mode, set `useCanvas: false`. If the effect appears above your content, set `zIndex` to `-1` or a lower value.
 
 When DOM particles are used, a one‑time console warning is logged because DOM particles can be less performant on heavy pages.
+
+### DOM renderer warning ⚠️
+
+DOM particles are **heavier** than canvas. On complex UIs or low‑end devices, this can cause jank. Use canvas when possible, or reduce `particleCount`, increase `burstIntervalMs`, and keep `particleSizePx` small.
 
 ## Z‑index note ⚠️
 
