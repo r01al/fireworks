@@ -33,7 +33,10 @@ class Fireworks {
   start() {
     if (this.destroyed) return;
     if (this.burstTimer !== null || this.sizeTimer !== null) return;
-    if (!this.isHostAvailable()) return;
+    if (!this.isHostAvailable()) {
+      this.destroy();
+      return;
+    }
 
     this.sizeTimer = window.setInterval(() => {
       this.updateSize();
@@ -72,7 +75,7 @@ class Fireworks {
 
   updateSize() {
     if (!this.isHostAvailable()) {
-      this.stop();
+      this.destroy();
       return;
     }
     const rect = this.host.getBoundingClientRect();
@@ -87,7 +90,7 @@ class Fireworks {
   burst() {
     if (this.destroyed || this.width === 0 || this.height === 0) return;
     if (!this.isHostAvailable()) {
-      this.stop();
+      this.destroy();
       return;
     }
     if (document.hidden) return;
