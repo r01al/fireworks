@@ -16,6 +16,18 @@ const ensureStyles = () => {
       pointer-events: none;
     }
 
+    .fw-canvas {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: none;
+    }
+
     .fw-particle {
       position: absolute;
       border-radius: 999px;

@@ -1,12 +1,13 @@
 # Fireworks 🎆
 
-Lightweight, framework‑agnostic fireworks effect that attaches to any HTML element — no canvas, no external CSS files. Styles are injected via JS and particles animate with simple transitions.
+Lightweight, framework‑agnostic fireworks effect that attaches to any HTML element — no external CSS files. Uses a canvas underlay when supported and falls back to DOM particles.
 
 ## Features ✨
 
-- Works on any element (background overlay)
+- Works on any element (background underlay)
 - Framework‑agnostic (drop into any stack)
-- No canvas, no external CSS files
+- No external CSS files
+- Uses canvas underlay when supported (falls back to DOM particles)
 - Configurable burst interval, particle count, duration, speed, size, and colors
 - ES module + UMD builds
 - Tiny API (start/stop/destroy)
@@ -84,6 +85,12 @@ fx.destroy();
 
 When the tab is not focused, the library pauses **creating new particles**. This avoids a burst backlog when you return to the tab.
 
+## Canvas underlay 🧵
+
+By default, Fireworks uses a canvas underlay when supported and falls back to DOM particles if canvas isn’t available. If you want to force DOM mode, set `useCanvas: false`. If the effect appears above your content, set `zIndex` to `-1` or a lower value.
+
+When DOM particles are used, a one‑time console warning is logged because DOM particles can be less performant on heavy pages.
+
 ## Config 🎛️
 
 All options are optional.
@@ -91,13 +98,14 @@ All options are optional.
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
 | `burstIntervalMs` | number | `400` | Time between bursts |
-| `sizeCheckIntervalMs` | number | `400` | Re-check container size interval |
+| `sizeCheckIntervalMs` | number | `60000` | Re-check container size interval |
 | `particleCount` | `{ min, max }` | `{16, 32}` | Particles per burst |
 | `durationMs` | `{ min, max }` | `{600, 1400}` | Particle travel duration |
 | `speedPxPerSecond` | `{ min, max }` | `{120, 360}` | Particle travel speed |
 | `particleSizePx` | `{ min, max }` | `{2, 4}` | Particle size |
 | `colors` | `string[]` | See source | Particle colors |
-| `zIndex` | number | `1` | Overlay z-index |
+| `zIndex` | number | `-1` | Underlay z-index |
+| `useCanvas` | boolean | `true` | Use canvas when supported |
 
 ## Build 🛠️
 

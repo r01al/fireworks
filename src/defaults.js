@@ -6,7 +6,8 @@ const DEFAULT_CONFIG = {
   speedPxPerSecond: { min: 120, max: 200 },
   particleSizePx: { min: 2, max: 20 },
   colors: ["#ff3b3b", "#ff9f1c", "#ffd93d", "#6bffb8", "#46b3ff", "#b15eff"],
-  zIndex: 1,
+  zIndex: -1,
+  useCanvas: true,
 };
 
 export { DEFAULT_CONFIG };
